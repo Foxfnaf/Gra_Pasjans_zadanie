@@ -1,4 +1,4 @@
-package edu.foxprogrammer;
+package edu.foxprogrammer.model;
 
 public enum Suit {
     HEARTS(1), DIAMONDS(2), CLUBS(3), SPADES(4);

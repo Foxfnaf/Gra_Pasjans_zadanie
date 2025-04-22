@@ -1,67 +1,67 @@
 package edu.foxprogrammer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
+import edu.foxprogrammer.model.Card;
+import edu.foxprogrammer.model.Rank;
+import edu.foxprogrammer.model.Suit;
+
+import java.util.*;
 
 public class Deck {
-    List<Card> cards = new ArrayList<>();
-    Scanner scanner = new  Scanner(System.in);
-    List<Card> deck = new ArrayList<>();
+    Scanner scanner = new Scanner(System.in);
+    List<Card> cards = new  ArrayList<>();
+    List<Stack<Card>> tableau = new ArrayList<>();
+    Stack<Card> stock = new Stack<>();
 
-    public List<Card> generateCards() {
+    public void generateCards() {
         for (Suit suit : Suit.values()) {
             for (Rank rank : Rank.values()) {
-                cards.add(new Card(suit, rank, 0, 0));
+                cards.add(new Card(suit, rank));
             }
         }
-
-        Collections.shuffle(cards);
-
-        return cards;
+        shuffleCards();
     }
 
-    public void mapDeckToList() {
-        int index = 0;
-        List<Card> toRemove = new ArrayList<>();
+    public void mapCardsToTableau() {
+        for (int i = 0; i < 7; i++) {
+            tableau.add(new Stack<>());
+        }
 
-        for (int row = 0; row < 7; row++) {
-            for (int col = 0; col < 7; col++) {
-                    Card card = cards.get(index);
-                    deck.add(card);
-                    toRemove.add(card);
-                    deck.get(index).setRevealed(false);
-                    index++;
+        for(int i = 0; i < 7; i++) {
+            for(int j = 0; j<=i; j++) {
+                tableau.get(i).push(cards.remove(0));
             }
         }
-        cards.removeAll(toRemove);
+    }
+
+    private void mapCardsToStock() {
+        stock.addAll(cards);
+    }
+
+    private void shuffleCards() {
+        Collections.shuffle(cards);
     }
 
     public void displayDeck() {
-        int index = 0;
 
-        for (int row = 0; row < 7; row++) {
-            for (int col = 0; col < 7; col++) {
-                if (col > row) {
-                    System.out.print("\t");
-                } else if (col == row || deck.get(index).isRevealed()) {
-                    Card card = deck.get(index);
-                    card.setRow(row+1);
+        System.out.println("1 \t\t 2 \t\t 3 \t\t 4 \t\t 5 \t\t 6 \t\t 7 \t\t");
+
+        for (int col = 0; col < tableau.size(); col++) {
+            for (int row = 0; row < tableau.get(col).size(); row++) {
+                Card card = tableau.get(col).get(row);
+                if (col == tableau.get(row).size() - 1 || card.isRevealed()) {
                     card.setRevealed(true);
-                    System.out.print(index+1 + "[" +formatCard(card) + "]" + "\t");
-                    index++;
+                    System.out.print("[" + formatCard(card) + "]\t");
                 } else {
-                    Card card = deck.get(index);
-                    card.setRow(row);
-                    System.out.print(index + 1 + "[XX]\t");
-                    index++;
+                    System.out.print("[XX]\t");
                 }
             }
             System.out.println();
         }
-        checkWhatPlayerWant();
+
+        moveCard();
     }
+
+
 
 
 
@@ -84,32 +84,32 @@ public class Deck {
         return rank + suit;
     }
 
-    private void checkWhatPlayerWant() {
-        System.out.println("Podaj numer karty którą chcesz przenieść");
-        int cardNum = scanner.nextInt();
-        while (!deck.get(--cardNum).isRevealed()) {
-            System.out.println("Nie możesz wybrać nie odkrytej karty!");
-            System.out.println("Podaj numer karty którą chcesz przenieść.");
-            cardNum = scanner.nextInt();
-        }
-        System.out.println("Podaj numer karty nad którą chcesz przenieść wybraną kartę " + ".");
+    private void moveCard() {
+        String[] userInput = scanner.nextLine().split(" ");
+        int from = Integer.parseInt(userInput[0]) - 1;
+        int to = Integer.parseInt(userInput[1]) - 1;
 
-        int placeNum = scanner.nextInt();
-        while (!deck.get(--placeNum).isRevealed()) {
-            System.out.println("Nie możesz wybrać nie odkrytej karty!");
-            System.out.println("Podaj numer karty na którą chcesz przenieść wybraną karte.");
-            placeNum = scanner.nextInt();
+        if (from < 0 || from >= tableau.size() || to < 0 || to >= tableau.size()) {
+            System.out.println("Nieprawidłowy numer stosu.");
+            return;
         }
 
-        moveCard(cardNum, placeNum);
+        Stack<Card> source = tableau.get(from);
+        Stack<Card> dest = tableau.get(to);
 
-    }
+        if (source.isEmpty()) {
+            System.out.println("Stos źródłowy jest pusty.");
+            return;
+        }
 
-    private void moveCard(int cardNum, int placeNum) {
-        Card movedCard = deck.remove(cardNum);
-        deck.add(placeNum, movedCard);
+        Card moving = source.pop();
+        System.out.println("Przenoszona karta: " + moving.getRank() + " " + moving.getSuit());
 
+        dest.push(moving);
+        Stack<Card> S = tableau.getFirst();
+        System.out.println(S);
         displayDeck();
     }
+
 
 }
