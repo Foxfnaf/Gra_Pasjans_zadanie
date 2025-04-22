@@ -7,6 +7,7 @@ public class Main {
         deck.generateCards();
 
         deck.mapCardsToTableau();
+        deck.mapCardsToStock();
 
         deck.displayDeck();
     }

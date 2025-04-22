@@ -8,17 +8,21 @@ import java.util.*;
 
 public class Deck {
     Scanner scanner = new Scanner(System.in);
-    List<Card> cards = new  ArrayList<>();
+    List<Card> cards = new ArrayList<>();
     List<Stack<Card>> tableau = new ArrayList<>();
     Stack<Card> stock = new Stack<>();
+    int lastStockCardID = -1;
 
     public void generateCards() {
+
         for (Suit suit : Suit.values()) {
             for (Rank rank : Rank.values()) {
-                cards.add(new Card(suit, rank));
+                if (suit.getSuitIndicator() == 2) {
+                    cards.add(new Card(suit, rank, "black"));
+                } else cards.add(new Card(suit, rank, "red"));
             }
         }
-        shuffleCards();
+        shuffleCards(cards);
     }
 
     public void mapCardsToTableau() {
@@ -26,43 +30,61 @@ public class Deck {
             tableau.add(new Stack<>());
         }
 
-        for(int i = 0; i < 7; i++) {
-            for(int j = 0; j<=i; j++) {
-                tableau.get(i).push(cards.remove(0));
+        for (int i = 0; i < 7; i++) {
+            int cardsInStack = 7 - i;
+            for (int j = 0; j < cardsInStack; j++) {
+                tableau.get(i).push(cards.removeFirst());
             }
         }
     }
 
-    private void mapCardsToStock() {
+
+    public void mapCardsToStock() {
         stock.addAll(cards);
     }
 
-    private void shuffleCards() {
+    private void shuffleCards(List<Card> cards) {
         Collections.shuffle(cards);
     }
 
     public void displayDeck() {
+        int maxHeight = tableau.stream().mapToInt(Stack::size).max().orElse(0);
 
-        System.out.println("1 \t\t 2 \t\t 3 \t\t 4 \t\t 5 \t\t 6 \t\t 7 \t\t");
 
-        for (int col = 0; col < tableau.size(); col++) {
-            for (int row = 0; row < tableau.get(col).size(); row++) {
-                Card card = tableau.get(col).get(row);
-                if (col == tableau.get(row).size() - 1 || card.isRevealed()) {
-                    card.setRevealed(true);
-                    System.out.print("[" + formatCard(card) + "]\t");
+        System.out.println("  1\t\t 2\t\t 3\t\t 4\t\t 5\t\t 6\t\t 7");
+
+        for (int row = 0; row < maxHeight; row++) {
+            for (int col = 0; col < tableau.size(); col++) {
+                Stack<Card> column = tableau.get(col);
+
+                if (row < column.size()) {
+                    Card card = column.get(row);
+                    if (row == column.size() - 1 || card.isRevealed()) {
+                        card.setRevealed(true);
+                        System.out.print("[" + formatCard(card) + "]\t");
+                    } else {
+                        System.out.print("[XX]\t");
+                    }
                 } else {
-                    System.out.print("[XX]\t");
+                    System.out.print("\t");
                 }
             }
             System.out.println();
         }
 
-        moveCard();
+        displayStock();
     }
 
-
-
+    private void displayStock() {
+        if (lastStockCardID + 1 < stock.size()) {
+            lastStockCardID = lastStockCardID + 1;
+            System.out.println("Stos rezerwowy:" + "[" + formatCard(stock.get(lastStockCardID)) + "]");
+        } else {
+            shuffleCards(stock);
+            lastStockCardID = -1;
+        }
+        checkWhatPlayerWants();
+    }
 
 
     private String formatCard(Card card) {
@@ -84,31 +106,69 @@ public class Deck {
         return rank + suit;
     }
 
-    private void moveCard() {
+    private void checkWhatPlayerWants() {
         String[] userInput = scanner.nextLine().split(" ");
+        if(userInput[0].equalsIgnoreCase("sr") && userInput.length != 1){
+            moveCardFromStock(userInput);
+        } else if (checkCommand(userInput)) {
+            moveCardFromTableau(userInput);
+        }if (userInput[0].equalsIgnoreCase("sr") && userInput.length == 1){
+            displayStock();
+        } else {
+            System.out.println("Nieznana lub niepoprawna komenda!");
+            checkWhatPlayerWants();
+        }
+    }
+
+    private void moveCardFromTableau(String[] userInput){
         int from = Integer.parseInt(userInput[0]) - 1;
         int to = Integer.parseInt(userInput[1]) - 1;
-
-        if (from < 0 || from >= tableau.size() || to < 0 || to >= tableau.size()) {
-            System.out.println("Nieprawidłowy numer stosu.");
-            return;
-        }
-
         Stack<Card> source = tableau.get(from);
         Stack<Card> dest = tableau.get(to);
 
-        if (source.isEmpty()) {
-            System.out.println("Stos źródłowy jest pusty.");
-            return;
+        Card moving = source.peek();
+        Card destCard = dest.peek();
+
+        while (!checkMove(moving, destCard)) {
+            System.out.println("Nieprawidłowy ruch!");
+            checkWhatPlayerWants();
         }
 
-        Card moving = source.pop();
-        System.out.println("Przenoszona karta: " + moving.getRank() + " " + moving.getSuit());
+        dest.push(moving);
+        displayDeck();
+
+    }
+
+    private void moveCardFromStock(String[] userInput) {
+        int to = Integer.parseInt(userInput[1]) - 1;
+        Stack<Card> source = stock;
+        Stack<Card> dest = tableau.get(to);
+        Card moving = source.get(lastStockCardID);
+        Card destCard = dest.peek();
+
+        while (!checkMove(moving, destCard)) {
+            System.out.println("Nieprawidłowy ruch!");
+            checkWhatPlayerWants();
+        }
 
         dest.push(moving);
-        Stack<Card> S = tableau.getFirst();
-        System.out.println(S);
         displayDeck();
+    }
+
+    private boolean checkMove(Card moving, Card destCard) {
+        return !moving.getColor().equals(destCard.getColor()) && moving.getRank().getId() == destCard.getRank().getId() - 1;
+    }
+
+    private boolean checkCommand(String[] userInput) {
+        try {
+            for (int i = 0; i < userInput.length; i ++) {
+                int number = Integer.parseInt(userInput[i]);
+            }
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+
     }
 
 
