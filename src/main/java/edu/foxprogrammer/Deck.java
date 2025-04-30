@@ -10,6 +10,7 @@ public class Deck {
     Scanner scanner = new Scanner(System.in);
     List<Card> cards = new ArrayList<>();
     List<Stack<Card>> tableau = new ArrayList<>();
+    List<Stack<Card>> foundations = new ArrayList<>();
     Stack<Card> stock = new Stack<>();
     int lastStockCardID = -1;
 
@@ -25,9 +26,13 @@ public class Deck {
         shuffleCards(cards);
     }
 
-    public void mapCardsToTableau() {
+    public void mapStacks() {
         for (int i = 0; i < 7; i++) {
             tableau.add(new Stack<>());
+        }
+
+        for (int i = 0; i < 4; i++) {
+            foundations.add(new Stack<>());
         }
 
         for (int i = 0; i < 7; i++) {
@@ -38,7 +43,6 @@ public class Deck {
         }
     }
 
-
     public void mapCardsToStock() {
         stock.addAll(cards);
     }
@@ -47,14 +51,27 @@ public class Deck {
         Collections.shuffle(cards);
     }
 
-    public void displayDeck() {
+    public void displayDeck() { // TODO wyswietlanie psuje sie po przeniesieniu paru innych kart do kolumny
         int maxHeight = tableau.stream().mapToInt(Stack::size).max().orElse(0);
 
 
+        for (int i = 0; i < 4; ) {
+            if (foundations.get(i).isEmpty()) {
+                i++;
+                System.out.print("\t [SK " + i + "]");
+            } else {
+                System.out.print("\t [SK " + formatCard(foundations.get(i).peek()) + "]");
+                i++;
+            }
+        }
+        System.out.println();
         System.out.println("  1\t\t 2\t\t 3\t\t 4\t\t 5\t\t 6\t\t 7");
 
         for (int row = 0; row < maxHeight; row++) {
             for (int col = 0; col < tableau.size(); col++) {
+                if (col == 0) {
+                    System.out.print(row + 1);
+                }
                 Stack<Card> column = tableau.get(col);
 
                 if (row < column.size()) {
@@ -71,17 +88,17 @@ public class Deck {
             }
             System.out.println();
         }
-
         displayStock();
     }
 
-    private void displayStock() {
+    public void displayStock() {
         if (lastStockCardID + 1 < stock.size()) {
             lastStockCardID = lastStockCardID + 1;
             System.out.println("Stos rezerwowy:" + "[" + formatCard(stock.get(lastStockCardID)) + "]");
         } else {
             shuffleCards(stock);
-            lastStockCardID = -1;
+            lastStockCardID = 0;
+            System.out.println("Stos rezerwowy:" + "[" + formatCard(stock.get(lastStockCardID)) + "]");
         }
         checkWhatPlayerWants();
     }
@@ -106,40 +123,51 @@ public class Deck {
         return rank + suit;
     }
 
-    private void checkWhatPlayerWants() {
+    private void checkWhatPlayerWants() { //TODO obsłuż wyjątki komend move
         String[] userInput = scanner.nextLine().split(" ");
-        if(userInput[0].equalsIgnoreCase("sr") && userInput.length != 1){
-            moveCardFromStock(userInput);
-        } else if (checkCommand(userInput)) {
+        if (userInput.length == 3 && checkCommand(userInput)) {
+            moveStackOfCards(userInput);
+        } else if (userInput.length == 2 && userInput[0].equalsIgnoreCase("sr")) {
+            moveCardFromStockToTableau(userInput);
+        } else if (userInput.length == 2 && checkCommand(userInput)) {
             moveCardFromTableau(userInput);
-        }if (userInput[0].equalsIgnoreCase("sr") && userInput.length == 1){
-            displayStock();
+        } else if (userInput.length == 1 && userInput[0].equalsIgnoreCase("sr")) {
+            displayDeck();
+        } else if (userInput.length == 3 && userInput[1].equalsIgnoreCase("sk") && !userInput[0].equalsIgnoreCase("sr")) {
+            moveCardFromTableauToFoundation(userInput);
+        } else if (userInput.length == 3 && userInput[0].equalsIgnoreCase("sr") && userInput[1].equalsIgnoreCase("sk")) {
+            moveCardFromStockToFoundation(userInput);
         } else {
             System.out.println("Nieznana lub niepoprawna komenda!");
             checkWhatPlayerWants();
         }
     }
 
-    private void moveCardFromTableau(String[] userInput){
+    private void moveCardFromTableau(String[] userInput) {
         int from = Integer.parseInt(userInput[0]) - 1;
         int to = Integer.parseInt(userInput[1]) - 1;
         Stack<Card> source = tableau.get(from);
         Stack<Card> dest = tableau.get(to);
-
+        Card destCard = null;
         Card moving = source.peek();
-        Card destCard = dest.peek();
+
+        if(!dest.isEmpty()) {
+            destCard = dest.peek();
+        }
 
         while (!checkMove(moving, destCard)) {
             System.out.println("Nieprawidłowy ruch!");
+            System.out.println("todo");
             checkWhatPlayerWants();
         }
 
+        source.remove(moving);
         dest.push(moving);
         displayDeck();
 
     }
 
-    private void moveCardFromStock(String[] userInput) {
+    private void moveCardFromStockToTableau(String[] userInput) {
         int to = Integer.parseInt(userInput[1]) - 1;
         Stack<Card> source = stock;
         Stack<Card> dest = tableau.get(to);
@@ -148,21 +176,112 @@ public class Deck {
 
         while (!checkMove(moving, destCard)) {
             System.out.println("Nieprawidłowy ruch!");
+            System.out.println("some");
             checkWhatPlayerWants();
         }
 
+        source.remove(moving);
         dest.push(moving);
         displayDeck();
     }
 
+    private void moveCardFromStockToFoundation(String[] userInput) {
+        int to = Integer.parseInt(userInput[2]) - 1;
+        Stack<Card> source = stock;
+        Stack<Card> dest = tableau.get(to);
+
+        Card moving = source.get(lastStockCardID);
+        Card destCard = null;
+
+        if(dest.isEmpty()) {
+            destCard = dest.peek();
+        }
+
+        while (!checkMoveToEndStock(moving, destCard)) {
+            System.out.println("Nieprawidłowy ruch!");
+            System.out.println("sout");
+            checkWhatPlayerWants();
+        }
+
+        source.remove(moving);
+        dest.push(moving);
+        displayDeck();
+    }
+
+    private void moveCardFromTableauToFoundation(String[] userInput) {
+        int from = Integer.parseInt(userInput[0]) - 1;
+        int to = Integer.parseInt(userInput[2]) - 1;
+
+        Stack<Card> source = tableau.get(from);
+        Stack<Card> dest = tableau.get(to);
+
+        Card moving = source.peek();
+        Card destCard = null;
+
+        if(!dest.isEmpty()){
+            destCard = dest.peek();
+        }
+
+        while (!checkMoveToEndStock(moving, destCard)) {
+            System.out.println("Nieprawidłowy ruch!");
+            System.out.println("something");
+            checkWhatPlayerWants();
+        }
+
+        source.remove(moving);
+        dest.push(moving);
+        displayDeck();
+    }
+
+    private void moveStackOfCards(String[] userInput) {
+        int from = Integer.parseInt(userInput[0]) - 1;
+        int fromRow = Integer.parseInt(userInput[1]) - 1;
+        int to = Integer.parseInt(userInput[2]) - 1;
+        Stack<Card> source = tableau.get(from);
+        Stack<Card> dest = tableau.get(to);
+        Card destCard = null;
+        Card moving = source.get(fromRow);
+
+
+        if(!dest.isEmpty()){
+            destCard = dest.peek();
+        }
+
+        while (!checkMove(moving, destCard)) {
+            System.out.println("Nieprawidłowy ruch!");
+            System.out.println("method");
+            checkWhatPlayerWants();
+        }
+
+        for (int i = fromRow; i < source.size(); ) {
+            Card card = source.remove(fromRow);
+            dest.push(card);
+            System.out.println(source.size());
+        }
+
+        displayDeck();
+    }
+
     private boolean checkMove(Card moving, Card destCard) {
-        return !moving.getColor().equals(destCard.getColor()) && moving.getRank().getId() == destCard.getRank().getId() - 1;
+        if (destCard == null) {
+            return moving.getRank().equals(Rank.KING);
+        } else {
+            return !moving.getColor().equals(destCard.getColor()) && moving.getRank().getId() == destCard.getRank().getId() - 1;
+        }
+    }
+
+    private boolean checkMoveToEndStock(Card moving, Card destCard) {
+        if (destCard == null && moving.getRank().equals(Rank.ACE)) {
+            return true;
+        } else if (destCard != null) {
+            return moving.getSuit().equals(destCard.getSuit()) && moving.getRank().getId() == destCard.getRank().getId() + 1;
+        } else return false;
     }
 
     private boolean checkCommand(String[] userInput) {
         try {
-            for (int i = 0; i < userInput.length; i ++) {
-                int number = Integer.parseInt(userInput[i]);
+            for (String s : userInput) {
+                Integer.parseInt(s);
             }
             return true;
         } catch (NumberFormatException e) {
@@ -170,6 +289,4 @@ public class Deck {
         }
 
     }
-
-
 }
