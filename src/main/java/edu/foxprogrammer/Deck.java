@@ -65,12 +65,18 @@ public class Deck {
             }
         }
         System.out.println();
-        System.out.println("  1\t\t 2\t\t 3\t\t 4\t\t 5\t\t 6\t\t 7");
+
+        System.out.print("     ");
+        for (int i = 0; i < 7; i++) {
+            System.out.printf("%-6s", i + 1);
+        }
+        System.out.println();
+
 
         for (int row = 0; row < maxHeight; row++) {
             for (int col = 0; col < tableau.size(); col++) {
                 if (col == 0) {
-                    System.out.print(row + 1);
+                    System.out.printf("%2d ", row + 1); // Numer wiersza z lewej strony
                 }
                 Stack<Card> column = tableau.get(col);
 
@@ -78,12 +84,12 @@ public class Deck {
                     Card card = column.get(row);
                     if (row == column.size() - 1 || card.isRevealed()) {
                         card.setRevealed(true);
-                        System.out.print("[" + formatCard(card) + "]\t");
+                        System.out.printf("%-6s", "[" + formatCard(card) + "]"); // dla odkrytej
                     } else {
-                        System.out.print("[XX]\t");
+                        System.out.printf("%-6s", "[XX]"); // dla zakrytej karty
                     }
                 } else {
-                    System.out.print("\t");
+                    System.out.printf("%-6s", ""); // puste miejsce
                 }
             }
             System.out.println();
