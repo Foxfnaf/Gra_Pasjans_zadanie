@@ -123,7 +123,7 @@ public class Deck {
         return rank + suit;
     }
 
-    private void checkWhatPlayerWants() { //TODO obsłuż wyjątki komend move
+    private void checkWhatPlayerWants() {
         String[] userInput = scanner.nextLine().split(" ");
         if (userInput.length == 3 && checkCommand(userInput)) {
             moveStackOfCards(userInput);
@@ -137,6 +137,22 @@ public class Deck {
             moveCardFromTableauToFoundation(userInput);
         } else if (userInput.length == 3 && userInput[0].equalsIgnoreCase("sr") && userInput[1].equalsIgnoreCase("sk")) {
             moveCardFromStockToFoundation(userInput);
+        } else if (userInput.length == 2 && userInput[0].equalsIgnoreCase("new") && userInput[1].equalsIgnoreCase("game")) {
+            startNewGame();
+        } else if (userInput.length == 1 && userInput[0].equalsIgnoreCase("exit")) {
+            return;
+        } else {
+            System.out.println("Nieznana lub niepoprawna komenda!");
+            checkWhatPlayerWants();
+        }
+    }
+
+    private void checkWhatPlayerWantsAfterWin() {
+        String[] userInput = scanner.nextLine().split(" ");
+        if (userInput.length == 2 && userInput[0].equalsIgnoreCase("new") && userInput[1].equalsIgnoreCase("game")) {
+            startNewGame();
+        } else if (userInput.length == 1 && userInput[0].equalsIgnoreCase("exit")) {
+            return;
         } else {
             System.out.println("Nieznana lub niepoprawna komenda!");
             checkWhatPlayerWants();
@@ -144,15 +160,27 @@ public class Deck {
     }
 
     private void moveCardFromTableau(String[] userInput) {
-        int from = Integer.parseInt(userInput[0]) - 1;
-        int to = Integer.parseInt(userInput[1]) - 1;
-        Stack<Card> source = tableau.get(from);
-        Stack<Card> dest = tableau.get(to);
+        int from = -1;
+        int to = -1;
+        Stack<Card> source = null;
+        Stack<Card> dest = null;
         Card destCard = null;
-        Card moving = source.peek();
+        Card moving = null;
 
-        if(!dest.isEmpty()) {
-            destCard = dest.peek();
+        try {
+            from = Integer.parseInt(userInput[0]) - 1;
+            to = Integer.parseInt(userInput[1]) - 1;
+            source = tableau.get(from);
+            dest = tableau.get(to);
+            destCard = null;
+            moving = source.peek();
+
+            if (!dest.isEmpty()) {
+                destCard = dest.peek();
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Karty na tych pozycjach nie istnieją");
+            checkWhatPlayerWants();
         }
 
         while (!checkMove(moving, destCard)) {
@@ -168,11 +196,24 @@ public class Deck {
     }
 
     private void moveCardFromStockToTableau(String[] userInput) {
-        int to = Integer.parseInt(userInput[1]) - 1;
-        Stack<Card> source = stock;
-        Stack<Card> dest = tableau.get(to);
-        Card moving = source.get(lastStockCardID);
-        Card destCard = dest.peek();
+        int to = -1;
+        Stack<Card> source = null;
+        Stack<Card> dest = null;
+        Card moving = null;
+        Card destCard = null;
+        try {
+            to = Integer.parseInt(userInput[1]) - 1;
+            source = stock;
+            dest = tableau.get(to);
+            moving = source.get(lastStockCardID);
+
+            if (!dest.isEmpty()) {
+                destCard = dest.peek();
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Karty na tych pozycjach nie istnieją");
+            checkWhatPlayerWants();
+        }
 
         while (!checkMove(moving, destCard)) {
             System.out.println("Nieprawidłowy ruch!");
@@ -186,15 +227,27 @@ public class Deck {
     }
 
     private void moveCardFromStockToFoundation(String[] userInput) {
-        int to = Integer.parseInt(userInput[2]) - 1;
+        int to = -1;
         Stack<Card> source = stock;
-        Stack<Card> dest = tableau.get(to);
+        Stack<Card> dest = null;
 
-        Card moving = source.get(lastStockCardID);
+        Card moving = null;
         Card destCard = null;
 
-        if(dest.isEmpty()) {
-            destCard = dest.peek();
+        try {
+            to = Integer.parseInt(userInput[2]) - 1;
+            source = stock;
+            dest = foundations.get(to);
+
+            moving = source.get(lastStockCardID);
+            destCard = null;
+
+            if (!dest.isEmpty()) {
+                destCard = dest.peek();
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Karty na tych pozycjach nie istnieją");
+            checkWhatPlayerWants();
         }
 
         while (!checkMoveToEndStock(moving, destCard)) {
@@ -209,17 +262,31 @@ public class Deck {
     }
 
     private void moveCardFromTableauToFoundation(String[] userInput) {
-        int from = Integer.parseInt(userInput[0]) - 1;
-        int to = Integer.parseInt(userInput[2]) - 1;
+        int from = -1;
+        int to = -1;
 
-        Stack<Card> source = tableau.get(from);
-        Stack<Card> dest = tableau.get(to);
+        Stack<Card> source = null;
+        Stack<Card> dest = null;
 
         Card moving = source.peek();
         Card destCard = null;
 
-        if(!dest.isEmpty()){
-            destCard = dest.peek();
+        try {
+            from = Integer.parseInt(userInput[0]) - 1;
+            to = Integer.parseInt(userInput[2]) - 1;
+
+            source = tableau.get(from);
+            dest = tableau.get(to);
+
+            moving = source.peek();
+            destCard = null;
+
+            if (!dest.isEmpty()) {
+                destCard = dest.peek();
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Karty na tych pozycjach nie istnieją");
+            checkWhatPlayerWants();
         }
 
         while (!checkMoveToEndStock(moving, destCard)) {
@@ -234,17 +301,28 @@ public class Deck {
     }
 
     private void moveStackOfCards(String[] userInput) {
-        int from = Integer.parseInt(userInput[0]) - 1;
-        int fromRow = Integer.parseInt(userInput[1]) - 1;
-        int to = Integer.parseInt(userInput[2]) - 1;
-        Stack<Card> source = tableau.get(from);
-        Stack<Card> dest = tableau.get(to);
+        int from = -1;
+        int fromRow = -1;
+        int to = -1;
+        Stack<Card> source = null;
+        Stack<Card> dest = null;
         Card destCard = null;
-        Card moving = source.get(fromRow);
+        Card moving = null;
+        try {
+            from = Integer.parseInt(userInput[0]) - 1;
+            fromRow = Integer.parseInt(userInput[1]) - 1;
+            to = Integer.parseInt(userInput[2]) - 1;
+            source = tableau.get(from);
+            dest = tableau.get(to);
+            moving = source.get(fromRow);
 
 
-        if(!dest.isEmpty()){
-            destCard = dest.peek();
+            if (!dest.isEmpty()) {
+                destCard = dest.peek();
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Karty na tych pozycjach nie istnieją");
+            checkWhatPlayerWants();
         }
 
         while (!checkMove(moving, destCard)) {
@@ -259,6 +337,19 @@ public class Deck {
             System.out.println(source.size());
         }
 
+        displayDeck();
+    }
+
+    private void startNewGame() {
+        System.out.println();
+        System.out.println("NOWA GRA");
+        cards.removeAll(cards);
+        tableau.removeAll(tableau);
+        stock.removeAll(stock);
+        foundations.removeAll(foundations);
+        generateCards();
+        mapStacks();
+        mapCardsToStock();
         displayDeck();
     }
 
@@ -288,5 +379,19 @@ public class Deck {
             return false;
         }
 
+    }
+
+    private void checkIfPlayerWin() {
+        int winIndicator = 0;
+        for(int i = 0; i < foundations.size(); i++){
+            if(foundations.get(i).peek().getRank().equals(Rank.KING)) {
+                winIndicator ++;
+            }
+        }
+
+        if(winIndicator == 4) {
+            System.out.println("YOU WIN");
+            checkWhatPlayerWantsAfterWin();
+        }
     }
 }
